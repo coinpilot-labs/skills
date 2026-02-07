@@ -15,6 +15,7 @@ Use Coinpilot's experimental API to copy trade Hyperliquid perpetuals with ephem
 - Ask the user for `wallets.json` only if it is missing or incomplete.
 - Store it locally at `tmp/wallets.json`.
 - Never print or log private keys. Never commit `tmp/wallets.json`.
+- If `wallets.json` includes `apiBaseUrl`, use it as the Coinpilot API base URL.
 
 See `references/wallets-json.md` for the format and rules.
 
@@ -30,6 +31,7 @@ See `references/wallets-json.md` for the format and rules.
    - Check for an existing, complete `tmp/wallets.json`.
    - Ask the user to provide `wallets.json` only if it is missing or incomplete.
    - Save it as `tmp/wallets.json`.
+   - If `apiBaseUrl` is present, use it for all Coinpilot API calls.
    - All experimental calls require `x-api-key` plus a primary wallet key via
      `X-Wallet-Private-Key` header or `primaryWalletPrivateKey` in the body.
 
