@@ -25,7 +25,8 @@ Rate limit: 1 request per second.
     - `subscription: { leadWallet, followerWallet, config }`
   - `config` options:
     - `allocation` (required, min $5 USDC)
-    - `stopLossPercent`, `takeProfitPercent`
+    - `stopLossPercent` (decimal 0-1, `0` disables; e.g. 50% = `0.5`)
+    - `takeProfitPercent` (decimal >= 0, `0` disables; e.g. 50% = `0.5`, 150% = `1.5`)
     - `inverseCopy`, `forceCopyExisting`
     - `maxLeverage`, `maxMarginPercentage`
 - `POST /experimental/:wallet/subscriptions/stop`
@@ -60,7 +61,7 @@ These routes are behind `isSignedIn` and accept either:
     - `limit` (default `20`, max `100`)
   - Available categories (from code):
     - `all`: all available wallets on the platform
-    - `top`: top picks curated by the platform
+    - `top`: top picks curated by coinpilot
     - `totalPnl`: highest total PnL
     - `winRate`: highest win rate
     - `avgPnlPerVlm`: best PnL per volume
@@ -75,7 +76,7 @@ These routes are behind `isSignedIn` and accept either:
     - `whales`: whale-size traders
     - `kol`: key opinion leaders
     - `institution`: institutional traders
-    - `coinpilot`: Coinpilot/community-sourced wallets
+    - `coinpilot`: community-sourced wallets
   - Do not use: `bot`, `nof1-s1.5`, `watchlist`.
 
 ### Subscription management (non-experimental)
@@ -101,8 +102,8 @@ the `:userId` path param must match the wallet owner.
   - `_id`: `${leadWallet}:${userId}`
 - LeadSubscriptionConfig:
   - `allocation`: number (USDC)
-  - `stopLossPercent`: number (>= 0)
-  - `takeProfitPercent`: number (>= 0)
+  - `stopLossPercent`: number (decimal 0-1, `0` disables; e.g. 50% = `0.5`)
+  - `takeProfitPercent`: number (decimal >= 0, `0` disables; e.g. 50% = `0.5`, 150% = `1.5`)
   - `inverseCopy`: boolean
   - `forceCopyExisting`: boolean
   - `positionTPSL?`: record keyed by coin
