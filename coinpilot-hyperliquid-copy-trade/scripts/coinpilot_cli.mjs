@@ -2,10 +2,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-const getApiBaseUrl = () => process.env.COINPILOT_API_BASE_URL || "https://api.coinpilot.bot";
+const getApiBaseUrl = () =>
+  process.env.COINPILOT_API_BASE_URL || "https://api.coinpilot.bot";
 const HYPERLIQUID_API_ENDPOINT = "https://api.hyperliquid.xyz";
 const DEFAULT_WALLETS_PATH =
-  process.env.COINPILOT_WALLETS_PATH || path.resolve(process.cwd(), "tmp/wallets.json");
+  process.env.COINPILOT_CONFIG_PATH ||
+  path.resolve(process.cwd(), "tmp/coinpilot.json");
 const RATE_LIMIT_MS = 1000;
 
 let lastRequestAt = 0;
@@ -25,9 +27,12 @@ const readJson = async (filePath) => {
 };
 
 const validateWallets = (data) => {
-  if (!data || typeof data !== "object") throw new Error("wallets.json must be an object");
-  if (!data.apiKey || typeof data.apiKey !== "string") throw new Error("Missing apiKey");
-  if (!data.userId || typeof data.userId !== "string") throw new Error("Missing userId");
+  if (!data || typeof data !== "object")
+    throw new Error("coinpilot.json must be an object");
+  if (!data.apiKey || typeof data.apiKey !== "string")
+    throw new Error("Missing apiKey");
+  if (!data.userId || typeof data.userId !== "string")
+    throw new Error("Missing userId");
   if (!Array.isArray(data.wallets) || data.wallets.length < 2) {
     throw new Error("wallets must be an array with at least 2 entries");
   }
@@ -43,7 +48,8 @@ const validateWallets = (data) => {
   }
 
   for (const wallet of data.wallets) {
-    if (typeof wallet.index !== "number") throw new Error("wallet.index must be a number");
+    if (typeof wallet.index !== "number")
+      throw new Error("wallet.index must be a number");
     if (!wallet.address || typeof wallet.address !== "string") {
       throw new Error("wallet.address must be a string");
     }
@@ -57,10 +63,13 @@ const validateWallets = (data) => {
   return data;
 };
 
-const getPrimaryWallet = (wallets) => wallets.wallets.find((wallet) => wallet.isPrimary);
+const getPrimaryWallet = (wallets) =>
+  wallets.wallets.find((wallet) => wallet.isPrimary);
 
 const findWalletByAddress = (wallets, address) =>
-  wallets.wallets.find((wallet) => wallet.address.toLowerCase() === address.toLowerCase());
+  wallets.wallets.find(
+    (wallet) => wallet.address.toLowerCase() === address.toLowerCase(),
+  );
 
 const findWalletByIndex = (wallets, index) =>
   wallets.wallets.find((wallet) => wallet.index === index);
@@ -104,7 +113,14 @@ const formatOutput = (data) => {
   console.log(JSON.stringify(data, null, 2));
 };
 
-const requestCoinpilot = async (method, route, wallets, body, query, extraHeaders) => {
+const requestCoinpilot = async (
+  method,
+  route,
+  wallets,
+  body,
+  query,
+  extraHeaders,
+) => {
   await throttle();
   const primary = getPrimaryWallet(wallets);
   const baseUrl = getApiBaseUrl();
@@ -128,19 +144,27 @@ const requestCoinpilot = async (method, route, wallets, body, query, extraHeader
     body: body ? JSON.stringify(body) : undefined,
   });
   const contentType = res.headers.get("content-type") || "";
-  const payload = contentType.includes("application/json") ? await res.json() : await res.text();
+  const payload = contentType.includes("application/json")
+    ? await res.json()
+    : await res.text();
   if (!res.ok) {
-    const message = typeof payload === "string" ? payload : JSON.stringify(payload);
-    throw new Error(`Coinpilot ${method} ${route} failed (${res.status}): ${message}`);
+    const message =
+      typeof payload === "string" ? payload : JSON.stringify(payload);
+    throw new Error(
+      `Coinpilot ${method} ${route} failed (${res.status}): ${message}`,
+    );
   }
   if (payload && typeof payload === "object" && "success" in payload) {
     if (payload.success === false) {
-      const message = payload.error ? String(payload.error) : JSON.stringify(payload);
+      const message = payload.error
+        ? String(payload.error)
+        : JSON.stringify(payload);
       throw new Error(`Coinpilot ${method} ${route} failed: ${message}`);
     }
     if ("data" in payload) {
       const keys = Object.keys(payload);
-      const hasOnlyData = keys.length === 2 && keys.includes("success") && keys.includes("data");
+      const hasOnlyData =
+        keys.length === 2 && keys.includes("success") && keys.includes("data");
       if (hasOnlyData) return payload.data;
     }
   }
@@ -157,7 +181,9 @@ const requestHyperliquid = async (payload) => {
   });
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(`Hyperliquid request failed (${res.status}): ${JSON.stringify(data)}`);
+    throw new Error(
+      `Hyperliquid request failed (${res.status}): ${JSON.stringify(data)}`,
+    );
   }
   return data;
 };
@@ -172,7 +198,8 @@ const resolveFollowerWallet = async (wallets, args, primaryAddress) => {
 
   if (args["follower-index"] !== undefined) {
     const index = Number(args["follower-index"]);
-    if (Number.isNaN(index)) throw new Error("--follower-index must be a number");
+    if (Number.isNaN(index))
+      throw new Error("--follower-index must be a number");
     const follower = findWalletByIndex(wallets, index);
     if (!follower) throw new Error(`No wallet found at index ${index}`);
     return follower;
@@ -180,7 +207,8 @@ const resolveFollowerWallet = async (wallets, args, primaryAddress) => {
 
   if (args["follower-wallet"]) {
     const follower = findWalletByAddress(wallets, args["follower-wallet"]);
-    if (!follower) throw new Error(`No wallet found for ${args["follower-wallet"]}`);
+    if (!follower)
+      throw new Error(`No wallet found for ${args["follower-wallet"]}`);
     return follower;
   }
 
@@ -192,7 +220,9 @@ const resolveFollowerWallet = async (wallets, args, primaryAddress) => {
     );
     const follower = findWalletByAddress(wallets, prepared.address);
     if (!follower) {
-      throw new Error(`Prepared wallet ${prepared.address} not found in wallets.json`);
+      throw new Error(
+        `Prepared wallet ${prepared.address} not found in coinpilot.json`,
+      );
     }
     return follower;
   }
@@ -207,7 +237,7 @@ const printHelp = () => {
 Usage: node scripts/coinpilot_cli.mjs <command> [options]
 
 Commands:
-  validate                     Validate wallets.json (use --online to call /experimental/:wallet/me)
+  validate                     Validate coinpilot.json (use --online to call /experimental/:wallet/me)
   lead-metrics                 Get metrics for a lead wallet
   lead-periods                 Get period metrics for a lead wallet
   lead-data                    Query lead wallet performance data
@@ -226,7 +256,7 @@ Commands:
   hl-portfolio                 Hyperliquid portfolio for a wallet
 
 Common options:
-  --wallets <path>             Path to wallets.json (default: tmp/wallets.json)
+  --wallets <path>             Path to coinpilot.json (default: tmp/coinpilot.json)
   --base-url <url>             Coinpilot base URL override
 
 Examples:
@@ -260,17 +290,21 @@ const main = async () => {
 
   if (command === "validate") {
     if (!args.online) {
-      console.log("wallets.json format looks valid.");
+      console.log("coinpilot.json format looks valid.");
       return;
     }
-    const result = await requestCoinpilot("GET", `/experimental/${primaryAddress}/me`, wallets);
+    const result = await requestCoinpilot(
+      "GET",
+      `/experimental/${primaryAddress}/me`,
+      wallets,
+    );
     const apiUserId = result?.userId ?? result?.data?.userId;
     if (apiUserId !== wallets.userId) {
       throw new Error(
-        `UserId mismatch: wallets.json has ${wallets.userId}, API returned ${apiUserId}`,
+        `UserId mismatch: coinpilot.json has ${wallets.userId}, API returned ${apiUserId}`,
       );
     }
-    console.log("wallets.json verified against /experimental/:wallet/me.");
+    console.log("coinpilot.json verified against /experimental/:wallet/me.");
     return;
   }
 
@@ -297,16 +331,22 @@ const main = async () => {
   }
 
   if (command === "lead-data") {
-    const data = await requestCoinpilot("GET", "/lead-wallets/data", wallets, undefined, {
-      period: args.period,
-      sortBy: args["sort-by"],
-      sortOrder: args["sort-order"],
-      type: args.type,
-      search: args.search,
-      watchlist: args.watchlist,
-      page: args.page,
-      limit: args.limit,
-    });
+    const data = await requestCoinpilot(
+      "GET",
+      "/lead-wallets/data",
+      wallets,
+      undefined,
+      {
+        period: args.period,
+        sortBy: args["sort-by"],
+        sortOrder: args["sort-order"],
+        type: args.type,
+        search: args.search,
+        watchlist: args.watchlist,
+        page: args.page,
+        limit: args.limit,
+      },
+    );
     formatOutput(data);
     return;
   }
@@ -364,11 +404,17 @@ const main = async () => {
     const config = {
       allocation,
       stopLossPercent: toNumber(args["stop-loss-percent"], "stop-loss-percent"),
-      takeProfitPercent: toNumber(args["take-profit-percent"], "take-profit-percent"),
+      takeProfitPercent: toNumber(
+        args["take-profit-percent"],
+        "take-profit-percent",
+      ),
       inverseCopy: toBoolean(args["inverse-copy"]),
       forceCopyExisting: toBoolean(args["force-copy-existing"]),
       maxLeverage: toNumber(args["max-leverage"], "max-leverage"),
-      maxMarginPercentage: toNumber(args["max-margin-percentage"], "max-margin-percentage"),
+      maxMarginPercentage: toNumber(
+        args["max-margin-percentage"],
+        "max-margin-percentage",
+      ),
     };
 
     Object.keys(config).forEach((key) => {
@@ -397,7 +443,8 @@ const main = async () => {
   }
 
   if (command === "stop") {
-    if (!args["subscription-id"]) throw new Error("--subscription-id is required");
+    if (!args["subscription-id"])
+      throw new Error("--subscription-id is required");
     const follower = await resolveFollowerWallet(wallets, args, primaryAddress);
     const body = {
       followerWalletPrivateKey: follower.privateKey,
@@ -414,13 +461,18 @@ const main = async () => {
   }
 
   if (command === "list-subscriptions") {
-    const data = await requestCoinpilot("GET", `/users/${wallets.userId}/subscriptions`, wallets);
+    const data = await requestCoinpilot(
+      "GET",
+      `/users/${wallets.userId}/subscriptions`,
+      wallets,
+    );
     formatOutput(data);
     return;
   }
 
   if (command === "update-config") {
-    if (!args["subscription-id"]) throw new Error("--subscription-id is required");
+    if (!args["subscription-id"])
+      throw new Error("--subscription-id is required");
     if (!args.payload) throw new Error("--payload <path> is required");
     const payload = await readJson(args.payload);
     if (!payload.config || !payload.leverages) {
@@ -437,7 +489,8 @@ const main = async () => {
   }
 
   if (command === "close-all") {
-    if (!args["subscription-id"]) throw new Error("--subscription-id is required");
+    if (!args["subscription-id"])
+      throw new Error("--subscription-id is required");
     const data = await requestCoinpilot(
       "POST",
       `/users/${wallets.userId}/subscriptions/${args["subscription-id"]}/close-all`,
@@ -449,7 +502,8 @@ const main = async () => {
   }
 
   if (command === "close") {
-    if (!args["subscription-id"]) throw new Error("--subscription-id is required");
+    if (!args["subscription-id"])
+      throw new Error("--subscription-id is required");
     if (!args.coin) throw new Error("--coin is required");
     const percentage = toNumber(args.percentage, "percentage") ?? 1;
     if (percentage < 0 || percentage > 1) {
@@ -470,7 +524,8 @@ const main = async () => {
   }
 
   if (command === "activities") {
-    if (!args["subscription-id"]) throw new Error("--subscription-id is required");
+    if (!args["subscription-id"])
+      throw new Error("--subscription-id is required");
     const data = await requestCoinpilot(
       "GET",
       `/users/${wallets.userId}/subscriptions/${args["subscription-id"]}/activities`,

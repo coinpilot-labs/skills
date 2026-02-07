@@ -23,6 +23,7 @@ Prerequisite: install the Skills CLI
 https://skills.sh/docs/cli
 
 Install the skill:
+
 ```
 npx skills add git@github.com:coinpilot-labs/skills --skill coinpilot-hyperliquid-copy-trade
 ```

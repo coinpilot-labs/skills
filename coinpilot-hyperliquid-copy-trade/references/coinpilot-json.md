@@ -1,6 +1,6 @@
-## wallets.json format
+## coinpilot.json format
 
-Store credentials at `tmp/wallets.json`:
+Store credentials at `tmp/coinpilot.json`:
 
 ```
 {
