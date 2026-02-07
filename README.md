@@ -19,6 +19,14 @@ Key resources:
 
 ## How To Use
 
+Prerequisite: install the Skills CLI
+https://skills.sh/docs/cli
+
+Install the skill:
+```
+npx skills add git@github.com:coinpilot-labs/skills --skill coinpilot-hyperliquid-copy-trade
+```
+
 1. Keep each skill in its own folder at the repo root.
 2. Put instructions in `SKILL.md`.
 3. Store scripts in `scripts/`, references in `references/`, and reusable assets
