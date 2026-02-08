@@ -25,7 +25,7 @@ https://skills.sh/docs/cli
 Install the skill:
 
 ```
-npx skills add git@github.com:coinpilot-labs/skills --skill coinpilot-hyperliquid-copy-trade
+npx skills add git@github.com:coinpilot-labs/skills -g --skill coinpilot-hyperliquid-copy-trade
 ```
 
 1. Keep each skill in its own folder at the repo root.
