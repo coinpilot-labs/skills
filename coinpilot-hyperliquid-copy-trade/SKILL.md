@@ -14,6 +14,7 @@ Use Coinpilot's experimental API to copy trade Hyperliquid perpetuals with ephem
 - Check whether `tmp/coinpilot.json` exists and is complete before any usage.
 - Ask the user for `coinpilot.json` only if it is missing or incomplete.
 - Store it locally at `tmp/coinpilot.json`.
+- Use lowercase wallet addresses in all API calls.
 - Never print or log private keys. Never commit `tmp/coinpilot.json`.
 - If `coinpilot.json` includes `apiBaseUrl`, use it as the Coinpilot API base URL.
 
@@ -27,6 +28,8 @@ See `references/coinpilot-json.md` for the format and rules.
 
 ## Workflow
 
+For each action, quickly check the relevant reference(s) to confirm endpoints, payloads, and constraints.
+
 1. **Credential intake**
    - Check for an existing, complete `tmp/coinpilot.json`.
    - Ask the user to provide `coinpilot.json` only if it is missing or incomplete.
@@ -36,11 +39,11 @@ See `references/coinpilot-json.md` for the format and rules.
      `X-Wallet-Private-Key` header or `primaryWalletPrivateKey` in the body.
 
 2. **First-use validation (only once)**
+   - `:wallet` is the primary wallet address from `coinpilot.json`.
    - Call `GET /experimental/:wallet/me` with:
-   - `x-api-key` from `coinpilot.json`
-   - `X-Wallet-Private-Key` (primary wallet)
-
-- Compare the returned `userId` with `coinpilot.json.userId`. Abort on mismatch.
+     - `x-api-key` from `coinpilot.json`
+     - `X-Wallet-Private-Key` (primary wallet)
+   - Compare the returned `userId` with `coinpilot.json.userId`. Abort on mismatch.
 
 3. **Lead wallet discovery**
    - These routes are behind `isSignedIn` and accept either:
@@ -60,6 +63,15 @@ See `references/coinpilot-json.md` for the format and rules.
      - `primaryWalletPrivateKey`
      - `followerWalletPrivateKey`
      - `subscription: { leadWallet, followerWallet, config }`
+     - `config` params (full):
+       - `allocation` (required, min $5 USDC)
+       - `stopLossPercent` (decimal 0-1, `0` disables; e.g. 50% = `0.5`)
+       - `takeProfitPercent` (decimal >= 0, `0` disables; e.g. 50% = `0.5`, 150% = `1.5`)
+       - `inverseCopy` (boolean)
+       - `forceCopyExisting` (boolean)
+       - `positionTPSL` (optional record keyed by coin with `stopLossPrice` and `takeProfitPrice`, both >= 0)
+       - `maxLeverage` (optional number, `0` disables)
+       - `maxMarginPercentage` (optional number 0-1, `0` disables)
 
 5. **Manage ongoing subscription**
    - Adjust configuration with `PATCH /users/:userId/subscriptions/:subscriptionId`.
@@ -73,7 +85,7 @@ See `references/coinpilot-json.md` for the format and rules.
    - Provide the primary wallet key via `X-Wallet-Private-Key` header
      (or `primaryWalletPrivateKey` in the body for legacy).
 
-Always respect the 1 request/second rate limit.
+Always respect the 5 requests/second rate limit.
 
 ## Performance reporting
 

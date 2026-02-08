@@ -8,7 +8,7 @@ const HYPERLIQUID_API_ENDPOINT = "https://api.hyperliquid.xyz";
 const DEFAULT_WALLETS_PATH =
   process.env.COINPILOT_CONFIG_PATH ||
   path.resolve(process.cwd(), "tmp/coinpilot.json");
-const RATE_LIMIT_MS = 1000;
+const RATE_LIMIT_MS = 200;
 
 let lastRequestAt = 0;
 
