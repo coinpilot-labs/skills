@@ -5,6 +5,11 @@ description: Automate copy trading on Hyperliquid perpetuals via the Coinpilot A
 
 # Coinpilot Hyperliquid Copy Trade
 
+## Version
+
+- Version: v0.0.1
+- Release date: 2026-02-08
+
 ## Overview
 
 Use Coinpilot's experimental API to copy trade Hyperliquid perpetuals with ephemeral wallet keys. The goal is to help the user make profit by finding and copying the best-performing traders. Handle lead wallet discovery, subscription lifecycle, and basic Hyperliquid performance lookups.
