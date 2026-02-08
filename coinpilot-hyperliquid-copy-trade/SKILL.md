@@ -7,7 +7,7 @@ description: Automate copy trading on Hyperliquid perpetuals via the Coinpilot A
 
 ## Version
 
-- Version: v0.0.1
+- Version: v0.0.2
 - Release date: 2026-02-08
 
 ## Overview
@@ -18,6 +18,9 @@ Use Coinpilot's experimental API to copy trade Hyperliquid perpetuals with ephem
 
 - Check whether `tmp/coinpilot.json` exists and is complete before any usage.
 - Ask the user for `coinpilot.json` only if it is missing or incomplete.
+- If missing or incomplete, provide a redacted template or field list (use
+  `assets/coinpilot.json`) and ask the user to fill it in (never include real
+  keys or a full populated file).
 - Store it locally at `tmp/coinpilot.json`.
 - Use lowercase wallet addresses in all API calls.
 - Never print or log private keys. Never commit `tmp/coinpilot.json`.
@@ -38,6 +41,9 @@ For each action, quickly check the relevant reference(s) to confirm endpoints, p
 1. **Credential intake**
    - Check for an existing, complete `tmp/coinpilot.json`.
    - Ask the user to provide `coinpilot.json` only if it is missing or incomplete.
+   - If missing or incomplete, share a redacted template (placeholders only)
+     from `assets/coinpilot.json` and ask the user to fill in their values
+     before saving.
    - Save it as `tmp/coinpilot.json`.
    - If `apiBaseUrl` is present, use it for all Coinpilot API calls.
    - All experimental calls require `x-api-key` plus a primary wallet key via
