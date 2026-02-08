@@ -55,7 +55,12 @@ For each action, quickly check the relevant reference(s) to confirm endpoints, p
 
 4. **Start copy trading**
    - Check available balance in the primary funding wallet via Hyperliquid `clearinghouseState` (`hl-account`) before starting.
-   - Enforce minimum allocation of $5 USDC per subscription.
+   - Enforce minimum allocation of $5 USDC per subscription (API minimum).
+   - Note: Hyperliquid min trade value per order is $10.
+   - Minimum practical allocation should not be less than $20 so copied
+     positions scale sensibly versus lead traders (often $500K-$3M+ accounts).
+   - The agent can adjust the initial allocation based on the leader account
+     value from metrics to preserve proportional sizing.
    - If funds are insufficient, do not start. Only the user can fund the primary wallet, and allocation cannot be reduced. The agent may stop an existing subscription to release funds.
    - Use `GET /experimental/:wallet/subscriptions/prepare-wallet` to select a follower wallet.
    - Match the returned `address` to a subwallet in `coinpilot.json` to get its private key.
