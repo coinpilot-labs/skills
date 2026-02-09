@@ -260,6 +260,7 @@ Commands:
   prepare-wallet               Get an available follower wallet
   start                        Start copy trading (experimental)
   stop                         Stop copy trading (experimental)
+  renew-api-wallet             Renew API wallet for a subscription (experimental)
   list-subscriptions           List subscriptions for the user
   update-config                Update subscription config/leverages
   close-all                    Close all positions for a subscription
@@ -279,6 +280,7 @@ Examples:
   node scripts/coinpilot_cli.mjs start --lead-wallet 0xlead... --allocation 200 --follower-index 1
     (allocation must be >= 5 USDC)
   node scripts/coinpilot_cli.mjs stop --subscription-id 123 --follower-index 1
+  node scripts/coinpilot_cli.mjs renew-api-wallet --subscription-id 123 --follower-index 1
 `);
 };
 
@@ -467,6 +469,23 @@ const main = async () => {
     const data = await requestCoinpilot(
       "POST",
       `/experimental/${primaryAddress}/subscriptions/stop`,
+      wallets,
+      body,
+    );
+    formatOutput(data);
+    return;
+  }
+
+  if (command === "renew-api-wallet") {
+    if (!args["subscription-id"])
+      throw new Error("--subscription-id is required");
+    const follower = await resolveFollowerWallet(wallets, args, primaryAddress);
+    const body = {
+      followerWalletPrivateKey: follower.privateKey,
+    };
+    const data = await requestCoinpilot(
+      "POST",
+      `/experimental/${primaryAddress}/subscriptions/${args["subscription-id"]}/renew-api-wallet`,
       wallets,
       body,
     );

@@ -8,7 +8,7 @@ description: Automate copy trading on Hyperliquid perpetuals via the Coinpilot A
 ## Version
 
 - Version: v0.0.5
-- Release date: 2026-02-09 14:12
+- Release date: 2026-02-09 15:03
 
 ## Overview
 
@@ -97,6 +97,9 @@ For each action, quickly check the relevant reference(s) to confirm endpoints, p
    - Note: adjusting `allocation` for an existing subscription is not supported via API trading.
    - Close positions with `POST /users/:userId/subscriptions/:subscriptionId/close` or `close-all`.
    - Review activity with `GET /users/:userId/subscriptions/:subscriptionId/activities`.
+   - If a subscription's `apiWalletExpiry` is within 5 days, renew it with
+     `POST /experimental/:wallet/subscriptions/:subscriptionId/renew-api-wallet`
+     and include `followerWalletPrivateKey` for the subscription's follower wallet.
 
 6. **Stop copy trading**
    - Call `POST /experimental/:wallet/subscriptions/stop` with
@@ -134,6 +137,8 @@ Use `scripts/coinpilot_cli.mjs` for repeatable calls:
   - `node scripts/coinpilot_cli.mjs history`
 - Stop copy trading:
   - `node scripts/coinpilot_cli.mjs stop --subscription-id <id> --follower-index 1`
+- Renew expiring API wallet:
+  - `node scripts/coinpilot_cli.mjs renew-api-wallet --subscription-id <id> --follower-index 1`
 - Hyperliquid performance checks:
   - `node scripts/coinpilot_cli.mjs hl-account --wallet 0x...`
   - `node scripts/coinpilot_cli.mjs hl-portfolio --wallet 0x...`

@@ -34,6 +34,11 @@ Rate limit: 5 requests per second.
     - `followerWalletPrivateKey`
     - `subscriptionId`
   - Primary wallet key is required for auth via header or body.
+- `POST /experimental/:wallet/subscriptions/:subscriptionId/renew-api-wallet`
+  - Body (required):
+    - `followerWalletPrivateKey`
+  - Renews the API wallet when `apiWalletExpiry` is within 5 days.
+  - Returns `{ apiWallet: { address, encryptedApiWalletKey, apiWalletExpiry } }`.
 
 ### Lead wallet discovery
 
