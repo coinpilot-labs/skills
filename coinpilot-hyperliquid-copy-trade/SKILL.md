@@ -7,8 +7,8 @@ description: Automate copy trading on Hyperliquid perpetuals via the Coinpilot A
 
 ## Version
 
-- Version: v0.0.4
-- Release date: 2026-02-09 14:05
+- Version: v0.0.5
+- Release date: 2026-02-09 14:12
 
 ## Overview
 
@@ -104,16 +104,10 @@ For each action, quickly check the relevant reference(s) to confirm endpoints, p
    - Provide the primary wallet key via `X-Wallet-Private-Key` header
      (or `primaryWalletPrivateKey` in the body for legacy).
 
-7. **Reset orphaned follower wallet**
-   - Use only when a follower wallet is not in any active subscription and has
-     a non-zero account value.
-   - Call `POST /experimental/:wallet/reset-follower` with:
-     - `X-Wallet-Private-Key` header (primary wallet key)
-     - Body:
-       - `followerWallet` (address to close, 0x...)
-       - `followerWalletPrivateKey` (ephemeral, not stored)
-   - The endpoint closes all open perp positions for the follower wallet and
-     withdraws any remaining funds to the primary wallet.
+7. **Orphaned follower wallet handling**
+   - If a follower wallet is not in any active subscription and has a non-zero
+     account value, alert the user and ask them to reset it manually in the
+     Coinpilot platform.
 
 Always respect the 5 requests/second rate limit and keep Coinpilot API calls serialized (1 concurrent request).
 
@@ -140,8 +134,6 @@ Use `scripts/coinpilot_cli.mjs` for repeatable calls:
   - `node scripts/coinpilot_cli.mjs history`
 - Stop copy trading:
   - `node scripts/coinpilot_cli.mjs stop --subscription-id <id> --follower-index 1`
-- Reset orphaned follower wallet:
-  - `node scripts/coinpilot_cli.mjs reset-follower --follower-index 1`
 - Hyperliquid performance checks:
   - `node scripts/coinpilot_cli.mjs hl-account --wallet 0x...`
   - `node scripts/coinpilot_cli.mjs hl-portfolio --wallet 0x...`
