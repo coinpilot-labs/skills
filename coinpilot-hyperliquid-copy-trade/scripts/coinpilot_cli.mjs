@@ -260,6 +260,7 @@ Commands:
   prepare-wallet               Get an available follower wallet
   start                        Start copy trading (experimental)
   stop                         Stop copy trading (experimental)
+  reset-follower               Reset an orphaned follower wallet (experimental)
   list-subscriptions           List subscriptions for the user
   update-config                Update subscription config/leverages
   close-all                    Close all positions for a subscription
@@ -279,6 +280,7 @@ Examples:
   node scripts/coinpilot_cli.mjs start --lead-wallet 0xlead... --allocation 200 --follower-index 1
     (allocation must be >= 5 USDC)
   node scripts/coinpilot_cli.mjs stop --subscription-id 123 --follower-index 1
+  node scripts/coinpilot_cli.mjs reset-follower --follower-index 1
 `);
 };
 
@@ -467,6 +469,27 @@ const main = async () => {
     const data = await requestCoinpilot(
       "POST",
       `/experimental/${primaryAddress}/subscriptions/stop`,
+      wallets,
+      body,
+    );
+    formatOutput(data);
+    return;
+  }
+
+  if (command === "reset-follower") {
+    const follower = await resolveFollowerWallet(wallets, args, primaryAddress);
+    if (!follower.address || follower.address === "unknown") {
+      throw new Error(
+        "Follower wallet address is required (use --follower-wallet or --follower-index).",
+      );
+    }
+    const body = {
+      followerWallet: follower.address,
+      followerWalletPrivateKey: follower.privateKey,
+    };
+    const data = await requestCoinpilot(
+      "POST",
+      `/experimental/${primaryAddress}/reset-follower`,
       wallets,
       body,
     );

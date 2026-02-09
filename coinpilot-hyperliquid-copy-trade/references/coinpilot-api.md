@@ -34,6 +34,12 @@ Rate limit: 5 requests per second.
     - `followerWalletPrivateKey`
     - `subscriptionId`
   - Primary wallet key is required for auth via header or body.
+- `POST /experimental/:wallet/reset-follower`
+  - Body (required):
+    - `followerWallet`
+    - `followerWalletPrivateKey`
+  - Closes all open perp positions for the follower wallet, then withdraws any
+    remaining funds to the primary wallet.
 
 ### Lead wallet discovery
 
