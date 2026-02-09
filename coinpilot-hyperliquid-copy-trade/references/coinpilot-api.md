@@ -8,7 +8,7 @@ Base URL: `https://api.coinpilot.bot`
 - Experimental routes require a primary wallet key, provided via
   `X-Wallet-Private-Key` header or `primaryWalletPrivateKey` in the body.
 
-Rate limit: 1 request per second.
+Rate limit: 5 requests per second.
 
 ### Experimental copy trading
 

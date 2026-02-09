@@ -7,8 +7,8 @@ description: Automate copy trading on Hyperliquid perpetuals via the Coinpilot A
 
 ## Version
 
-- Version: v0.0.2
-- Release date: 2026-02-08
+- Version: v0.0.3
+- Release date: 2026-02-09 13:48
 
 ## Overview
 
@@ -66,6 +66,9 @@ For each action, quickly check the relevant reference(s) to confirm endpoints, p
 
 4. **Start copy trading**
    - Check available balance in the primary funding wallet via Hyperliquid `clearinghouseState` (`hl-account`) before starting.
+   - Only start one new subscription at a time. Do not parallelize `start`
+     calls for multiple leads; wait for the previous start to complete and
+     confirm the new subscription is active before proceeding.
    - Enforce minimum allocation of $5 USDC per subscription (API minimum).
    - Note: Hyperliquid min trade value per order is $10.
    - Minimum practical allocation should not be less than $20 so copied
@@ -101,7 +104,7 @@ For each action, quickly check the relevant reference(s) to confirm endpoints, p
    - Provide the primary wallet key via `X-Wallet-Private-Key` header
      (or `primaryWalletPrivateKey` in the body for legacy).
 
-Always respect the 5 requests/second rate limit.
+Always respect the 5 requests/second rate limit and keep Coinpilot API calls serialized (1 concurrent request).
 
 ## Performance reporting
 

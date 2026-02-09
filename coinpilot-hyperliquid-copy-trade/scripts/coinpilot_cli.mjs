@@ -11,6 +11,7 @@ const DEFAULT_WALLETS_PATH =
 const RATE_LIMIT_MS = 200;
 
 let lastRequestAt = 0;
+let coinpilotQueue = Promise.resolve();
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -19,6 +20,15 @@ const throttle = async () => {
   const wait = RATE_LIMIT_MS - (now - lastRequestAt);
   if (wait > 0) await sleep(wait);
   lastRequestAt = Date.now();
+};
+
+const withCoinpilotLock = async (fn) => {
+  const start = coinpilotQueue;
+  let release;
+  coinpilotQueue = new Promise((resolve) => {
+    release = resolve;
+  });
+  return start.then(fn).finally(release);
 };
 
 const readJson = async (filePath) => {
@@ -121,55 +131,59 @@ const requestCoinpilot = async (
   query,
   extraHeaders,
 ) => {
-  await throttle();
-  const primary = getPrimaryWallet(wallets);
-  const baseUrl = getApiBaseUrl();
-  const url = new URL(route, baseUrl);
-  if (query) {
-    for (const [key, value] of Object.entries(query)) {
-      if (value === undefined || value === "") continue;
-      url.searchParams.set(key, String(value));
+  return withCoinpilotLock(async () => {
+    await throttle();
+    const primary = getPrimaryWallet(wallets);
+    const baseUrl = getApiBaseUrl();
+    const url = new URL(route, baseUrl);
+    if (query) {
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === "") continue;
+        url.searchParams.set(key, String(value));
+      }
     }
-  }
-  console.log(`[coinpilot] ${method} ${url.toString()}`);
-  const headers = {
-    "Content-Type": "application/json",
-    "x-api-key": wallets.apiKey,
-    "x-wallet-private-key": primary.privateKey,
-    ...extraHeaders,
-  };
-  const res = await fetch(url.toString(), {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
+    console.log(`[coinpilot] ${method} ${url.toString()}`);
+    const headers = {
+      "Content-Type": "application/json",
+      "x-api-key": wallets.apiKey,
+      "x-wallet-private-key": primary.privateKey,
+      ...extraHeaders,
+    };
+    const res = await fetch(url.toString(), {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const contentType = res.headers.get("content-type") || "";
+    const payload = contentType.includes("application/json")
+      ? await res.json()
+      : await res.text();
+    if (!res.ok) {
+      const message =
+        typeof payload === "string" ? payload : JSON.stringify(payload);
+      throw new Error(
+        `Coinpilot ${method} ${route} failed (${res.status}): ${message}`,
+      );
+    }
+    if (payload && typeof payload === "object" && "success" in payload) {
+      if (payload.success === false) {
+        const message = payload.error
+          ? String(payload.error)
+          : JSON.stringify(payload);
+        throw new Error(`Coinpilot ${method} ${route} failed: ${message}`);
+      }
+      if ("data" in payload) {
+        const keys = Object.keys(payload);
+        const hasOnlyData =
+          keys.length === 2 &&
+          keys.includes("success") &&
+          keys.includes("data");
+        if (hasOnlyData) return payload.data;
+      }
+    }
+    // console.log(`[coinpilot] ${method} ${route} response:`, payload);
+    return payload;
   });
-  const contentType = res.headers.get("content-type") || "";
-  const payload = contentType.includes("application/json")
-    ? await res.json()
-    : await res.text();
-  if (!res.ok) {
-    const message =
-      typeof payload === "string" ? payload : JSON.stringify(payload);
-    throw new Error(
-      `Coinpilot ${method} ${route} failed (${res.status}): ${message}`,
-    );
-  }
-  if (payload && typeof payload === "object" && "success" in payload) {
-    if (payload.success === false) {
-      const message = payload.error
-        ? String(payload.error)
-        : JSON.stringify(payload);
-      throw new Error(`Coinpilot ${method} ${route} failed: ${message}`);
-    }
-    if ("data" in payload) {
-      const keys = Object.keys(payload);
-      const hasOnlyData =
-        keys.length === 2 && keys.includes("success") && keys.includes("data");
-      if (hasOnlyData) return payload.data;
-    }
-  }
-  // console.log(`[coinpilot] ${method} ${route} response:`, payload);
-  return payload;
 };
 
 const requestHyperliquid = async (payload) => {
