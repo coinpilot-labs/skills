@@ -79,9 +79,16 @@ credentials and wallet metadata:
 }
 ```
 
-Use the template in `assets/coinpilot.json` and keep this file private. Share
-it only with your trusted agent runtime for execution; never commit it to Git
-or share it publicly.
+Use the template in `assets/coinpilot.json` and keep this file private. You may
+provide 1-9 subwallets (2-10 total wallets including the primary).
+
+This file contains high-sensitivity secrets (API key and private keys):
+
+- Never commit it to Git or share it publicly.
+- Prefer referencing an existing local path (or `COINPILOT_CONFIG_PATH`) over
+  creating extra plaintext copies.
+- Only share it with a trusted local agent runtime when you explicitly want
+  copy-trading actions executed.
 
 ### 4) Connect and verify
 
