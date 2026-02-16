@@ -1,41 +1,36 @@
-# Skills
+# Coinpilot Skills Directory
 
-This repo hosts custom agent skills and their bundled resources.
+This repository contains custom agent skills and their supporting resources.
 
-## Included Skills
+## About Coinpilot
 
-### Coinpilot Hyperliquid Copy Trade
+Coinpilot is a social copy-trading app for on-chain assets, powered by
+Hyperliquid and Polymarket.
+Sign up and download the app: <https://refer.trycoinpilot.com/7ef646>
 
-Skill folder: `coinpilot-hyperliquid-copy-trade/`
+### Official Links
 
-Purpose: Guidance and resources for working with the Coinpilot + Hyperliquid
-copy-trading integration, including CLI automation and API references.
+- Website: <https://www.trycoinpilot.com/>
+- X: <https://x.com/trycoinpilot>
+- Discord: <https://discord.com/invite/UTfdDcMTHH>
+- Telegram: <https://t.me/CoinpilotOfficial>
+- YouTube: <https://www.youtube.com/@Coinpilot_Official>
+- Docs: <https://docs.trycoinpilot.com/>
 
-Key resources:
+## Skills Index
 
-- `coinpilot-hyperliquid-copy-trade/SKILL.md` - skill instructions
-- `coinpilot-hyperliquid-copy-trade/scripts/coinpilot_cli.mjs` - CLI helper
-- `coinpilot-hyperliquid-copy-trade/references/` - API docs and notes
+- `coinpilot-hyperliquid-copy-trade/`
+  Coinpilot + Hyperliquid copy-trading skill with API workflow guidance and
+  helper scripts.
+  - Skill definition: `coinpilot-hyperliquid-copy-trade/SKILL.md`
+  - Skill guide: `coinpilot-hyperliquid-copy-trade/README.md`
 
-## How To Use
+## Repository Conventions
 
-Prerequisite: install the Skills CLI
-https://skills.sh/docs/cli
+Each skill should be organized in its own root folder:
 
-Install the skill (SSH):
-
-```
-npx skills add git@github.com:coinpilot-labs/skills -g -y --skill coinpilot-hyperliquid-copy-trade
-```
-
-Install the skill (HTTPS):
-
-```
-npx skills add https://github.com/coinpilot-labs/skills -g -y --skill coinpilot-hyperliquid-copy-trade
-```
-
-1. Keep each skill in its own folder at the repo root.
-2. Put instructions in `SKILL.md`.
-3. Store scripts in `scripts/`, references in `references/`, and reusable assets
-   in `assets/` if needed.
-4. In Cursor, reference the skill by name to activate it for relevant tasks.
+- `SKILL.md` - agent instructions and workflow rules
+- `README.md` - user-facing setup and usage guide
+- `references/` - API notes and supporting docs
+- `scripts/` - helper automation scripts
+- `assets/` - templates and reusable files

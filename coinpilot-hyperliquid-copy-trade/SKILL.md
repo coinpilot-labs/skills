@@ -1,26 +1,23 @@
 ---
 name: coinpilot-hyperliquid-copy-trade
-description: Automate copy trading on Hyperliquid perpetuals via the Coinpilot API using experimental private-key auth and coinpilot.json credentials. Use when validating a user's credentials, discovering lead wallets, starting or stopping copy-trade subscriptions, adjusting subscription configs/positions, or querying Hyperliquid clearinghouseState/portfolio performance.
+description: Automate copy trading on Hyperliquid via Coinpilot to discover, investigate, and mirror top on-chain traders in real time with low execution latency. Use when users want to set up Coinpilot credentials, discover lead wallets, start or stop copy-trade subscriptions, adjust subscription configs or positions, or check balances and performance.
+version: 1.0.0
 ---
 
 # Coinpilot Hyperliquid Copy Trade
 
-## Version
-
-- Version: v0.0.6
-- Release date: 2026-02-09 23:02
-
 ## Overview
 
-Use Coinpilot's experimental API to copy trade Hyperliquid perpetuals with ephemeral wallet keys. The goal is to help the user make profit by finding and copying the best-performing traders. Handle lead wallet discovery, subscription lifecycle, and basic Hyperliquid performance lookups.
+Use Coinpilot's experimental API to copy-trade Hyperliquid perpetuals using the user's configured wallet keys. The goal is to help users maximize portfolio growth potential by finding and copying the best-performing traders while managing risk. Handle lead wallet discovery, subscription lifecycle, and basic Hyperliquid performance lookups.
 
 ## Required inputs
 
 - Check whether `tmp/coinpilot.json` exists and is complete before any usage.
 - Ask the user for `coinpilot.json` only if it is missing or incomplete.
+- The user may provide any local filename; always normalize and save runtime credentials to `tmp/coinpilot.json`.
 - If missing or incomplete, send the `assets/coinpilot.json` template file to
   the user, ask them to fill in the missing values, and request that they send
-  the completed file back (never include real keys or a full populated file).
+  the completed file back (never include real keys or a fully populated file).
 - Store it locally at `tmp/coinpilot.json`.
 - Use lowercase wallet addresses in all API calls.
 - Never print or log private keys. Never commit `tmp/coinpilot.json`.
@@ -38,12 +35,12 @@ See `references/coinpilot-json.md` for the format and rules.
 
 For each action, quickly check the relevant reference(s) to confirm endpoints, payloads, and constraints.
 
-1. **Credential intake**
+1. **Initialization and Authentication Setup**
    - Check for an existing, complete `tmp/coinpilot.json`.
    - Ask the user to provide `coinpilot.json` only if it is missing or incomplete.
-   - If missing or incomplete, share a redacted template (placeholders only)
-     from `assets/coinpilot.json` and ask the user to fill in their values
-     before saving.
+   - If missing or incomplete, directly prepare and send the redacted
+     `assets/coinpilot.json` template (placeholders only) to the user, and ask
+     them to fill in their values before saving.
    - Save it as `tmp/coinpilot.json`.
    - If `apiBaseUrl` is present, use it for all Coinpilot API calls.
    - All experimental calls require `x-api-key` plus a primary wallet key via
