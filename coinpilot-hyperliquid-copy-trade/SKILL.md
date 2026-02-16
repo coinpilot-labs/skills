@@ -1,14 +1,18 @@
 ---
 name: coinpilot-hyperliquid-copy-trade
 description: "Automate copy trading on Hyperliquid via Coinpilot to discover, investigate, and mirror top on-chain traders in real time with low execution latency. This skill requires high-sensitivity credentials (Coinpilot API key, Privy user ID, and wallet private keys) and should be used only when users explicitly request setup, lead discovery, subscription start/stop, risk updates, or performance checks. Repo: https://github.com/coinpilot-labs/skills"
-version: 1.0.2
+version: 1.0.3
 metadata:
   openclaw:
     requires:
+      env:
+        - COINPILOT_CONFIG_PATH
+        - COINPILOT_API_BASE_URL
       bins:
         - node
       config:
         - tmp/coinpilot.json
+    primaryEnv: COINPILOT_CONFIG_PATH
     homepage: https://github.com/coinpilot-labs/skills
 ---
 
@@ -25,6 +29,8 @@ Use Coinpilot's experimental API to copy-trade Hyperliquid perpetuals using the 
 - **Optional environment variables:**
   - `COINPILOT_CONFIG_PATH`: absolute/relative path to credentials JSON.
   - `COINPILOT_API_BASE_URL`: override Coinpilot API URL.
+- `metadata.openclaw` declares the two env vars for registry/analyzer visibility;
+  they remain runtime overrides (the CLI still works with default file path/API URL).
 - Never claim this skill is usable without private keys for state-changing copy-trading calls.
 
 ## Required inputs
