@@ -2,8 +2,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-const getApiBaseUrl = () =>
-  process.env.COINPILOT_API_BASE_URL || "https://api.coinpilot.bot";
+const getApiBaseUrl = (wallets) =>
+  wallets.apiBaseUrl ||
+  process.env.COINPILOT_API_BASE_URL ||
+  "https://api.coinpilot.bot";
 const HYPERLIQUID_API_ENDPOINT = "https://api.hyperliquid.xyz";
 const DEFAULT_WALLETS_PATH =
   process.env.COINPILOT_CONFIG_PATH ||
@@ -46,6 +48,9 @@ const validateWallets = (data) => {
   if (!Array.isArray(data.wallets) || data.wallets.length < 2) {
     throw new Error("wallets must be an array with at least 2 entries");
   }
+  if (data.wallets.length > 10) {
+    throw new Error("wallets must contain at most 10 entries");
+  }
 
   const primaryWallets = data.wallets.filter((wallet) => wallet.isPrimary);
   if (primaryWallets.length !== 1) {
@@ -57,6 +62,7 @@ const validateWallets = (data) => {
     throw new Error("Primary wallet must have index 0");
   }
 
+  const seenIndexes = new Set();
   for (const wallet of data.wallets) {
     if (typeof wallet.index !== "number")
       throw new Error("wallet.index must be a number");
@@ -68,6 +74,21 @@ const validateWallets = (data) => {
     }
     if (typeof wallet.isPrimary !== "boolean") {
       throw new Error("wallet.isPrimary must be a boolean");
+    }
+    if (seenIndexes.has(wallet.index)) {
+      throw new Error(
+        `wallet.index values must be unique (duplicate: ${wallet.index})`,
+      );
+    }
+    seenIndexes.add(wallet.index);
+    if (wallet.isPrimary) {
+      if (wallet.index !== 0) {
+        throw new Error("Primary wallet must have index 0");
+      }
+      continue;
+    }
+    if (wallet.index < 1 || wallet.index > 9) {
+      throw new Error("Subwallet indexes must be between 1 and 9");
     }
   }
   return data;
@@ -83,6 +104,15 @@ const findWalletByAddress = (wallets, address) =>
 
 const findWalletByIndex = (wallets, index) =>
   wallets.wallets.find((wallet) => wallet.index === index);
+
+const ensureFollowerWallet = (wallet) => {
+  if (wallet.isPrimary) {
+    throw new Error(
+      "Follower wallet must be a subwallet, not the primary wallet",
+    );
+  }
+  return wallet;
+};
 
 const parseArgs = (argv) => {
   const args = { _: [] };
@@ -134,7 +164,7 @@ const requestCoinpilot = async (
   return withCoinpilotLock(async () => {
     await throttle();
     const primary = getPrimaryWallet(wallets);
-    const baseUrl = getApiBaseUrl();
+    const baseUrl = getApiBaseUrl(wallets);
     const url = new URL(route, baseUrl);
     if (query) {
       for (const [key, value] of Object.entries(query)) {
@@ -147,6 +177,7 @@ const requestCoinpilot = async (
       "Content-Type": "application/json",
       "x-api-key": wallets.apiKey,
       "x-wallet-private-key": primary.privateKey,
+      "x-user-id": wallets.userId,
       ...extraHeaders,
     };
     const res = await fetch(url.toString(), {
@@ -216,14 +247,14 @@ const resolveFollowerWallet = async (wallets, args, primaryAddress) => {
       throw new Error("--follower-index must be a number");
     const follower = findWalletByIndex(wallets, index);
     if (!follower) throw new Error(`No wallet found at index ${index}`);
-    return follower;
+    return ensureFollowerWallet(follower);
   }
 
   if (args["follower-wallet"]) {
     const follower = findWalletByAddress(wallets, args["follower-wallet"]);
     if (!follower)
       throw new Error(`No wallet found for ${args["follower-wallet"]}`);
-    return follower;
+    return ensureFollowerWallet(follower);
   }
 
   if (args["use-prepare-wallet"]) {
@@ -238,7 +269,7 @@ const resolveFollowerWallet = async (wallets, args, primaryAddress) => {
         `Prepared wallet ${prepared.address} not found in coinpilot.json`,
       );
     }
-    return follower;
+    return ensureFollowerWallet(follower);
   }
 
   throw new Error(

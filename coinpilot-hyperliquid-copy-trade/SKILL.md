@@ -1,7 +1,7 @@
 ---
 name: coinpilot-hyperliquid-copy-trade
 description: "Automate copy trading on Hyperliquid via Coinpilot to discover, investigate, and mirror top on-chain traders in real time with low execution latency. This skill requires high-sensitivity credentials (Coinpilot API key, Privy user ID, and wallet private keys) and should be used only when users explicitly request setup, lead discovery, subscription start/stop, risk updates, or performance checks. Repo: https://github.com/coinpilot-labs/skills"
-version: 1.0.3
+version: 1.0.4
 metadata:
   openclaw:
     requires:
@@ -28,9 +28,11 @@ Use Coinpilot's experimental API to copy-trade Hyperliquid perpetuals using the 
 - **Additional required secrets:** `userId`, primary wallet private key, and follower wallet private keys.
 - **Optional environment variables:**
   - `COINPILOT_CONFIG_PATH`: absolute/relative path to credentials JSON.
-  - `COINPILOT_API_BASE_URL`: override Coinpilot API URL.
+  - `COINPILOT_API_BASE_URL`: Coinpilot API URL fallback when `coinpilot.json`
+    does not set `apiBaseUrl`.
 - `metadata.openclaw` declares the two env vars for registry/analyzer visibility;
-  they remain runtime overrides (the CLI still works with default file path/API URL).
+  the CLI still works with default file path/API URL when neither a config value
+  nor an env override is provided.
 - Never claim this skill is usable without private keys for state-changing copy-trading calls.
 
 ## Required inputs
@@ -50,7 +52,10 @@ Use Coinpilot's experimental API to copy-trade Hyperliquid perpetuals using the 
   permissions to owner-only read/write.
 - Use lowercase wallet addresses in all API calls.
 - Never print or log private keys. Never commit credential files (including `tmp/coinpilot.json`).
-- If `coinpilot.json` includes `apiBaseUrl`, use it as the Coinpilot API base URL.
+- Resolve Coinpilot API base URL in this order:
+  1. `coinpilot.json.apiBaseUrl` (if present),
+  2. `COINPILOT_API_BASE_URL` (if set),
+  3. default `https://api.coinpilot.bot`.
 
 See `references/coinpilot-json.md` for the format and rules.
 
@@ -75,21 +80,23 @@ For each action, quickly check the relevant reference(s) to confirm endpoints, p
      them to fill in their values before saving.
    - Save/update credentials at the resolved path and use that path for all
      runtime calls.
-   - If `apiBaseUrl` is present, use it for all Coinpilot API calls.
-   - All experimental calls require `x-api-key` plus a primary wallet key via
-     `X-Wallet-Private-Key` header or `primaryWalletPrivateKey` in the body.
+   - Resolve the Coinpilot API base URL in this order:
+     1. `coinpilot.json.apiBaseUrl` (if present),
+     2. `COINPILOT_API_BASE_URL` (if set),
+     3. default `https://api.coinpilot.bot`.
+   - All Coinpilot calls require these headers:
+     - `x-api-key`: `coinpilot.json.apiKey`
+     - `x-wallet-private-key`: the primary wallet `privateKey` from `coinpilot.json`
+     - `x-user-id`: `coinpilot.json.userId`
+   - Experimental write routes may also require wallet keys in the request body
+     such as `primaryWalletPrivateKey` and `followerWalletPrivateKey`.
 
 2. **First-use validation (only once)**
    - `:wallet` is the primary wallet address from `coinpilot.json`.
-   - Call `GET /experimental/:wallet/me` with:
-     - `x-api-key` from `coinpilot.json`
-     - `X-Wallet-Private-Key` (primary wallet)
+   - Call `GET /experimental/:wallet/me` using the standard Coinpilot auth headers above.
    - Compare the returned `userId` with `coinpilot.json.userId`. Abort on mismatch.
 
 3. **Lead wallet discovery**
-   - These routes are behind `isSignedIn` and accept either:
-     - Privy auth (token + `x-user-id`), or
-     - Private-key auth gated by `x-api-key` with primary wallet key.
    - Use `GET /lead-wallets/metrics/wallets/:wallet` to verify a user-specified lead.
    - Use the category endpoints in `references/coinpilot-api.md` for discovery.
    - If a wallet is missing metrics, stop and report that it is not found.
@@ -108,6 +115,7 @@ For each action, quickly check the relevant reference(s) to confirm endpoints, p
    - If funds are insufficient, do not start. Only the user can fund the primary wallet, and allocation cannot be reduced. The agent may stop an existing subscription to release funds.
    - Use `GET /experimental/:wallet/subscriptions/prepare-wallet` to select a follower wallet.
    - Match the returned `address` to a subwallet in `coinpilot.json` to get its private key.
+   - Never use the primary wallet as the follower wallet; follower wallets must be subwallets only.
    - Call `POST /experimental/:wallet/subscriptions/start` with:
      - `primaryWalletPrivateKey`
      - `followerWalletPrivateKey`
@@ -134,8 +142,8 @@ For each action, quickly check the relevant reference(s) to confirm endpoints, p
 6. **Stop copy trading**
    - Call `POST /experimental/:wallet/subscriptions/stop` with
      `followerWalletPrivateKey` and `subscriptionId`.
-   - Provide the primary wallet key via `X-Wallet-Private-Key` header
-     (or `primaryWalletPrivateKey` in the body for legacy).
+   - `x-wallet-private-key` still comes from the primary wallet.
+   - `primaryWalletPrivateKey` may still be accepted in the body for legacy flows.
 
 7. **Orphaned follower wallet handling**
    - If a follower wallet is not in any active subscription and has a non-zero
@@ -150,6 +158,15 @@ Always respect the 5 requests/second rate limit and keep Coinpilot API calls ser
   - **Subscription performance**: for a specific subscription/follower wallet.
   - **Overall performance**: aggregated performance across all follower wallets.
 - The primary wallet is a funding source only and does not participate in copy trading or performance calculations.
+
+## Example user requests
+
+- "Validate my `coinpilot.json` and confirm the API `userId` matches."
+- "Find strong lead wallets with high Sharpe and low drawdown, then recommend the best one to copy."
+- "Start copying wallet `0x...` with 200 USDC on follower wallet 1, with a 10% stop loss and 30% take profit."
+- "Show my active subscriptions, recent activity, and current performance."
+- "Update subscription `<id>` with tighter risk settings and lower max leverage."
+- "Stop subscription `<id>` and confirm the copy trade is closed."
 
 ## Scripted helpers (Node.js)
 

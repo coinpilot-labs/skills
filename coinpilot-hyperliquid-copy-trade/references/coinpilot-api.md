@@ -4,19 +4,21 @@ Base URL: `https://api.coinpilot.bot`
 
 ### Authentication
 
-- Always include `x-api-key` (experimental key).
-- Experimental routes require a primary wallet key, provided via
-  `X-Wallet-Private-Key` header or `primaryWalletPrivateKey` in the body.
+- All Coinpilot endpoints require these headers:
+  - `x-api-key`: `coinpilot.json.apiKey`
+  - `x-wallet-private-key`: the primary wallet `privateKey` from `coinpilot.json`
+  - `x-user-id`: `coinpilot.json.userId`
+- For experimental write routes, continue sending the wallet keys required in the
+  request body (`primaryWalletPrivateKey`, `followerWalletPrivateKey`) in
+  addition to the auth headers.
 
 Rate limit: 5 requests per second.
 
 ### Experimental copy trading
 
 - `GET /experimental/:wallet/me`
-  - Header: `X-Wallet-Private-Key`
   - Returns `{ userId }` for the primary wallet.
 - `GET /experimental/:wallet/subscriptions/prepare-wallet`
-  - Header: `X-Wallet-Private-Key`
   - Returns `{ address, hdWalletIndex }`
 - `POST /experimental/:wallet/subscriptions/start`
   - Body (required):
@@ -33,7 +35,8 @@ Rate limit: 5 requests per second.
   - Body (required):
     - `followerWalletPrivateKey`
     - `subscriptionId`
-  - Primary wallet key is required for auth via header or body.
+  - Continue sending `x-wallet-private-key`; `primaryWalletPrivateKey` may also
+    be accepted in the body for legacy flows.
 - `POST /experimental/:wallet/subscriptions/:subscriptionId/renew-api-wallet`
   - Body (required):
     - `followerWalletPrivateKey`
@@ -41,11 +44,6 @@ Rate limit: 5 requests per second.
   - Returns `{ apiWallet: { address, encryptedApiWalletKey, apiWalletExpiry } }`.
 
 ### Lead wallet discovery
-
-These routes are behind `isSignedIn` and accept either:
-
-- Privy auth (token + `x-user-id`), or
-- Private-key auth (gated by `x-api-key` + primary wallet key).
 
 - `GET /lead-wallets/metrics/wallets/:wallet`
   - Returns a single lead wallet metrics object (or `null` if not found).
@@ -86,10 +84,10 @@ These routes are behind `isSignedIn` and accept either:
 
 ### Subscription management (non-experimental)
 
-These routes require private-key auth (`x-api-key` + `X-Wallet-Private-Key`) and
-the `:userId` path param must match the wallet owner.
+These routes require the standard auth headers listed above, and the `:userId`
+path param must match the wallet owner.
 
-- LeadSubscription schema (from `models/src/lead/subscription.ts`):
+- LeadSubscription schema:
   - `userId`: string
   - `leadWallet`: string
   - `leadWalletName?`: string
