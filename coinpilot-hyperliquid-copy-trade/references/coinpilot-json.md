@@ -1,6 +1,13 @@
 ## coinpilot.json format
 
-By default, the CLI reads credentials from `tmp/coinpilot.json` (or `COINPILOT_CONFIG_PATH` if set):
+By default, the CLI reads credentials from a local file at `tmp/coinpilot.json`
+(or `COINPILOT_CONFIG_PATH` if set). Keep this file on the local machine that is
+running the trusted agent runtime, and do not paste the populated contents into
+chat:
+
+This local file is the actual runtime secret container for the skill. It holds
+the Coinpilot API key, Privy user ID, and wallet private keys needed for live
+trading calls.
 
 ```
 {
