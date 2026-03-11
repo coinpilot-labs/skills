@@ -1,7 +1,7 @@
 ---
 name: coinpilot-hyperliquid-copy-trade
 description: "Automate copy trading on Hyperliquid via Coinpilot to discover, investigate, and mirror top on-chain traders in real time with low execution latency. Runtime use requires a local credentials JSON that contains high-sensitivity secrets. Use only on a trusted local runtime when users explicitly request setup, lead discovery, subscription start/stop, risk updates, or performance checks. Github: https://github.com/coinpilot-labs/skills"
-version: 1.0.6
+version: 1.0.7
 metadata:
   openclaw:
     requires:
