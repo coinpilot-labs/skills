@@ -12,55 +12,55 @@
     {
       "index": 1,
       "address": "0xREPLACE_WITH_SUBWALLET_ADDRESS_1",
-      "privateKey": "0xREPLACE_WITH_SUBWALLET_PRIVATE_KEY_1",
+      "privateKey": "REPLACE_WITH_SUBWALLET_PRIVATE_KEY_1",
       "isPrimary": false
     },
     {
       "index": 2,
       "address": "0xREPLACE_WITH_SUBWALLET_ADDRESS_2",
-      "privateKey": "0xREPLACE_WITH_SUBWALLET_PRIVATE_KEY_2",
+      "privateKey": "REPLACE_WITH_SUBWALLET_PRIVATE_KEY_2",
       "isPrimary": false
     },
     {
       "index": 3,
       "address": "0xREPLACE_WITH_SUBWALLET_ADDRESS_3",
-      "privateKey": "0xREPLACE_WITH_SUBWALLET_PRIVATE_KEY_3",
+      "privateKey": "REPLACE_WITH_SUBWALLET_PRIVATE_KEY_3",
       "isPrimary": false
     },
     {
       "index": 4,
       "address": "0xREPLACE_WITH_SUBWALLET_ADDRESS_4",
-      "privateKey": "0xREPLACE_WITH_SUBWALLET_PRIVATE_KEY_4",
+      "privateKey": "REPLACE_WITH_SUBWALLET_PRIVATE_KEY_4",
       "isPrimary": false
     },
     {
       "index": 5,
       "address": "0xREPLACE_WITH_SUBWALLET_ADDRESS_5",
-      "privateKey": "0xREPLACE_WITH_SUBWALLET_PRIVATE_KEY_5",
+      "privateKey": "REPLACE_WITH_SUBWALLET_PRIVATE_KEY_5",
       "isPrimary": false
     },
     {
       "index": 6,
       "address": "0xREPLACE_WITH_SUBWALLET_ADDRESS_6",
-      "privateKey": "0xREPLACE_WITH_SUBWALLET_PRIVATE_KEY_6",
+      "privateKey": "REPLACE_WITH_SUBWALLET_PRIVATE_KEY_6",
       "isPrimary": false
     },
     {
       "index": 7,
       "address": "0xREPLACE_WITH_SUBWALLET_ADDRESS_7",
-      "privateKey": "0xREPLACE_WITH_SUBWALLET_PRIVATE_KEY_7",
+      "privateKey": "REPLACE_WITH_SUBWALLET_PRIVATE_KEY_7",
       "isPrimary": false
     },
     {
       "index": 8,
       "address": "0xREPLACE_WITH_SUBWALLET_ADDRESS_8",
-      "privateKey": "0xREPLACE_WITH_SUBWALLET_PRIVATE_KEY_8",
+      "privateKey": "REPLACE_WITH_SUBWALLET_PRIVATE_KEY_8",
       "isPrimary": false
     },
     {
       "index": 9,
       "address": "0xREPLACE_WITH_SUBWALLET_ADDRESS_9",
-      "privateKey": "0xREPLACE_WITH_SUBWALLET_PRIVATE_KEY_9",
+      "privateKey": "REPLACE_WITH_SUBWALLET_PRIVATE_KEY_9",
       "isPrimary": false
     }
   ]

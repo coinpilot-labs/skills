@@ -2,6 +2,9 @@
 
 Base URL: `https://api.coinpilot.bot`
 
+If `coinpilot.json.apiBaseUrl` is set, it must still resolve to an allowlisted
+HTTPS origin.
+
 ### Authentication
 
 - All Coinpilot endpoints require these headers:
@@ -11,8 +14,13 @@ Base URL: `https://api.coinpilot.bot`
 - For experimental write routes, continue sending the wallet keys required in the
   request body (`primaryWalletPrivateKey`, `followerWalletPrivateKey`) in
   addition to the auth headers.
+- Suggested readonly authentication validation flow:
+  - `GET /experimental/:wallet/me`
+  - `GET /users/:userId/subscriptions`
+  - one lead-discovery GET
+  - Hyperliquid `clearinghouseState` (`hl-account`) for the primary wallet
 
-Rate limit: 5 requests per second.
+Rate limit: 1 request per second.
 
 ### Experimental copy trading
 

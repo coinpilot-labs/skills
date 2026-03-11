@@ -1,19 +1,60 @@
 #!/usr/bin/env node
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
-const getApiBaseUrl = (wallets) =>
-  wallets.apiBaseUrl ||
-  process.env.COINPILOT_API_BASE_URL ||
-  "https://api.coinpilot.bot";
+const DEFAULT_API_BASE_URL = "https://api.coinpilot.bot";
+const ALLOWED_API_BASE_URLS = new Set(
+  ["coinpilot.bot", "coinpilot.com"].flatMap((domain) =>
+    ["", "dev-", "staging-"].map((prefix) => `https://${prefix}api.${domain}`),
+  ),
+);
 const HYPERLIQUID_API_ENDPOINT = "https://api.hyperliquid.xyz";
-const DEFAULT_WALLETS_PATH =
-  process.env.COINPILOT_CONFIG_PATH ||
-  path.resolve(process.cwd(), "tmp/coinpilot.json");
-const RATE_LIMIT_MS = 200;
+const RATE_LIMIT_MS = 1000;
+
+const getDefaultWalletsPath = () => {
+  const homeDir = os.homedir();
+  if (!homeDir) {
+    throw new Error("Unable to resolve the user home directory");
+  }
+  return path.join(homeDir, ".coinpilot", "coinpilot.json");
+};
+const normalizeApiBaseUrl = (value) => {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("coinpilot.json apiBaseUrl must be a valid URL");
+  }
+  if (url.protocol !== "https:") {
+    throw new Error("coinpilot.json apiBaseUrl must use https");
+  }
+  if (url.username || url.password || url.search || url.hash) {
+    throw new Error(
+      "coinpilot.json apiBaseUrl must not include auth, query params, or fragments",
+    );
+  }
+  if (url.pathname !== "/" && url.pathname !== "") {
+    throw new Error("coinpilot.json apiBaseUrl must not include a path");
+  }
+  return url.origin;
+};
+const validateApiBaseUrl = (value) => {
+  if (value === undefined) return DEFAULT_API_BASE_URL;
+  const normalized = normalizeApiBaseUrl(value);
+  if (!ALLOWED_API_BASE_URLS.has(normalized)) {
+    throw new Error(
+      `coinpilot.json apiBaseUrl must be one of: ${[...ALLOWED_API_BASE_URLS].join(", ")}`,
+    );
+  }
+  return normalized;
+};
+const getApiBaseUrl = (wallets) => validateApiBaseUrl(wallets.apiBaseUrl);
+const DEFAULT_WALLETS_PATH = getDefaultWalletsPath();
 
 let lastRequestAt = 0;
 let coinpilotQueue = Promise.resolve();
+let loadedSecrets = [];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -45,11 +86,11 @@ const validateWallets = (data) => {
     throw new Error("Missing apiKey");
   if (!data.userId || typeof data.userId !== "string")
     throw new Error("Missing userId");
-  if (!Array.isArray(data.wallets) || data.wallets.length < 2) {
-    throw new Error("wallets must be an array with at least 2 entries");
-  }
-  if (data.wallets.length > 10) {
-    throw new Error("wallets must contain at most 10 entries");
+  data.apiBaseUrl = validateApiBaseUrl(data.apiBaseUrl);
+  if (!Array.isArray(data.wallets) || data.wallets.length !== 10) {
+    throw new Error(
+      "wallets must be an array with exactly 10 entries (1 primary + 9 subwallets)",
+    );
   }
 
   const primaryWallets = data.wallets.filter((wallet) => wallet.isPrimary);
@@ -114,6 +155,68 @@ const ensureFollowerWallet = (wallet) => {
   return wallet;
 };
 
+const GLOBAL_OPTION_KEYS = new Set(["help", "h"]);
+const COMMAND_OPTION_KEYS = {
+  validate: new Set(["online"]),
+  "lead-metrics": new Set(["wallet"]),
+  "lead-periods": new Set(["wallet"]),
+  "lead-data": new Set([
+    "period",
+    "sort-by",
+    "sort-order",
+    "type",
+    "search",
+    "watchlist",
+    "page",
+    "limit",
+  ]),
+  "lead-categories": new Set(["limit"]),
+  "lead-category": new Set([
+    "category",
+    "period",
+    "sort-by",
+    "sort-order",
+    "search",
+    "page",
+    "limit",
+  ]),
+  "prepare-wallet": new Set(),
+  start: new Set([
+    "lead-wallet",
+    "lead-wallet-name",
+    "allocation",
+    "stop-loss-percent",
+    "take-profit-percent",
+    "inverse-copy",
+    "force-copy-existing",
+    "max-leverage",
+    "max-margin-percentage",
+    "follower-index",
+    "follower-wallet",
+    "use-prepare-wallet",
+  ]),
+  stop: new Set([
+    "subscription-id",
+    "follower-index",
+    "follower-wallet",
+    "use-prepare-wallet",
+  ]),
+  "renew-api-wallet": new Set([
+    "subscription-id",
+    "follower-index",
+    "follower-wallet",
+    "use-prepare-wallet",
+  ]),
+  "list-subscriptions": new Set(),
+  "update-config": new Set(["subscription-id", "payload"]),
+  "close-all": new Set(["subscription-id"]),
+  close: new Set(["subscription-id", "coin", "percentage"]),
+  activities: new Set(["subscription-id", "cursor", "size"]),
+  history: new Set(),
+  "hl-account": new Set(["wallet"]),
+  "hl-portfolio": new Set(["wallet"]),
+};
+
 const parseArgs = (argv) => {
   const args = { _: [] };
   for (let i = 0; i < argv.length; i += 1) {
@@ -134,6 +237,25 @@ const parseArgs = (argv) => {
   return args;
 };
 
+const validateArgs = (command, args) => {
+  const allowedKeys = COMMAND_OPTION_KEYS[command];
+  if (!allowedKeys) {
+    throw new Error(`Unknown command: ${command}`);
+  }
+
+  const optionKeys = Object.keys(args).filter((key) => key !== "_");
+  const unknownKeys = optionKeys.filter(
+    (key) => !GLOBAL_OPTION_KEYS.has(key) && !allowedKeys.has(key),
+  );
+  if (unknownKeys.length > 0) {
+    throw new Error(`Unknown option: --${unknownKeys[0]}`);
+  }
+
+  if (args._.length > 1) {
+    throw new Error(`Unexpected positional argument: ${args._[1]}`);
+  }
+};
+
 const toNumber = (value, field) => {
   if (value === undefined) return undefined;
   const parsed = Number(value);
@@ -149,8 +271,75 @@ const toBoolean = (value) => {
   return undefined;
 };
 
+const getLoadedSecrets = (wallets) => {
+  const values = [
+    wallets.apiKey,
+    ...wallets.wallets.map((wallet) => wallet.privateKey),
+  ];
+  return values.filter(
+    (value) => typeof value === "string" && value.length > 0,
+  );
+};
+
+const isWalletAddress = (value) =>
+  typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value);
+
+const extractLeadWallet = (value) => {
+  if (isWalletAddress(value)) return value.toLowerCase();
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const wallet = extractLeadWallet(entry);
+      if (wallet) return wallet;
+    }
+    return undefined;
+  }
+  if (!value || typeof value !== "object") return undefined;
+
+  for (const key of ["wallet", "address", "leadWallet"]) {
+    const candidate = value[key];
+    if (isWalletAddress(candidate)) return candidate.toLowerCase();
+  }
+
+  for (const entry of Object.values(value)) {
+    const wallet = extractLeadWallet(entry);
+    if (wallet) return wallet;
+  }
+  return undefined;
+};
+
+const redactSecretsInString = (value) => {
+  let redacted = value;
+  for (const secret of [...loadedSecrets].sort((a, b) => b.length - a.length)) {
+    redacted = redacted.split(secret).join("[REDACTED]");
+  }
+  return redacted;
+};
+
+const sanitizeOutput = (value) => {
+  if (typeof value === "string") return redactSecretsInString(value);
+  if (Array.isArray(value)) return value.map(sanitizeOutput);
+  if (!value || typeof value !== "object") return value;
+
+  const sanitized = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (
+      key === "privateKey" ||
+      key === "primaryWalletPrivateKey" ||
+      key === "followerWalletPrivateKey" ||
+      key === "apiKey" ||
+      key === "x-api-key" ||
+      key === "x-wallet-private-key"
+    ) {
+      sanitized[key] = "[REDACTED]";
+      continue;
+    }
+    sanitized[key] = sanitizeOutput(entry);
+  }
+  return sanitized;
+};
+
 const formatOutput = (data) => {
-  console.log(JSON.stringify(data, null, 2));
+  console.log(JSON.stringify(sanitizeOutput(data), null, 2));
 };
 
 const requestCoinpilot = async (
@@ -191,7 +380,9 @@ const requestCoinpilot = async (
       : await res.text();
     if (!res.ok) {
       const message =
-        typeof payload === "string" ? payload : JSON.stringify(payload);
+        typeof payload === "string"
+          ? redactSecretsInString(payload)
+          : JSON.stringify(sanitizeOutput(payload));
       throw new Error(
         `Coinpilot ${method} ${route} failed (${res.status}): ${message}`,
       );
@@ -199,8 +390,8 @@ const requestCoinpilot = async (
     if (payload && typeof payload === "object" && "success" in payload) {
       if (payload.success === false) {
         const message = payload.error
-          ? String(payload.error)
-          : JSON.stringify(payload);
+          ? redactSecretsInString(String(payload.error))
+          : JSON.stringify(sanitizeOutput(payload));
         throw new Error(`Coinpilot ${method} ${route} failed: ${message}`);
       }
       if ("data" in payload) {
@@ -234,13 +425,6 @@ const requestHyperliquid = async (payload) => {
 };
 
 const resolveFollowerWallet = async (wallets, args, primaryAddress) => {
-  if (args["follower-private-key"]) {
-    return {
-      address: args["follower-wallet"] || "unknown",
-      privateKey: args["follower-private-key"],
-    };
-  }
-
   if (args["follower-index"] !== undefined) {
     const index = Number(args["follower-index"]);
     if (Number.isNaN(index))
@@ -273,7 +457,7 @@ const resolveFollowerWallet = async (wallets, args, primaryAddress) => {
   }
 
   throw new Error(
-    "Specify --follower-index, --follower-wallet, --follower-private-key, or --use-prepare-wallet",
+    "Specify --follower-index, --follower-wallet, or --use-prepare-wallet so the private key is loaded from coinpilot.json in memory",
   );
 };
 
@@ -282,7 +466,7 @@ const printHelp = () => {
 Usage: node scripts/coinpilot_cli.mjs <command> [options]
 
 Commands:
-  validate                     Validate coinpilot.json (use --online to call /experimental/:wallet/me)
+  validate                     Validate coinpilot.json (use --online for readonly auth checks)
   lead-metrics                 Get metrics for a lead wallet
   lead-periods                 Get period metrics for a lead wallet
   lead-data                    Query lead wallet performance data
@@ -302,8 +486,12 @@ Commands:
   hl-portfolio                 Hyperliquid portfolio for a wallet
 
 Common options:
-  --wallets <path>             Path to coinpilot.json (default: tmp/coinpilot.json)
-  --base-url <url>             Coinpilot base URL override
+  coinpilot.json location is fixed to: ${DEFAULT_WALLETS_PATH}
+
+Follower wallet selection:
+  --follower-index <n>         Load follower wallet by subwallet index from coinpilot.json
+  --follower-wallet <address>  Load follower wallet by address from coinpilot.json
+  --use-prepare-wallet         Ask Coinpilot for an available follower wallet, then match it in coinpilot.json
 
 Examples:
   node scripts/coinpilot_cli.mjs validate --online
@@ -323,14 +511,12 @@ const main = async () => {
     printHelp();
     return;
   }
+  validateArgs(command, args);
 
-  const walletsPath = args.wallets || DEFAULT_WALLETS_PATH;
+  const walletsPath = DEFAULT_WALLETS_PATH;
   // console.log(`[coinpilot] wallets path: ${walletsPath}`);
   const wallets = validateWallets(await readJson(walletsPath));
-
-  if (args["base-url"]) {
-    process.env.COINPILOT_API_BASE_URL = args["base-url"];
-  }
+  loadedSecrets = getLoadedSecrets(wallets);
 
   const primary = getPrimaryWallet(wallets);
   const primaryAddress = primary.address;
@@ -340,18 +526,59 @@ const main = async () => {
       console.log("coinpilot.json format looks valid.");
       return;
     }
-    const result = await requestCoinpilot(
+    const me = await requestCoinpilot(
       "GET",
       `/experimental/${primaryAddress}/me`,
       wallets,
     );
-    const apiUserId = result?.userId ?? result?.data?.userId;
+    const apiUserId = me?.userId ?? me?.data?.userId;
     if (apiUserId !== wallets.userId) {
       throw new Error(
         `UserId mismatch: coinpilot.json has ${wallets.userId}, API returned ${apiUserId}`,
       );
     }
-    console.log("coinpilot.json verified against /experimental/:wallet/me.");
+
+    const subscriptions = await requestCoinpilot(
+      "GET",
+      `/users/${wallets.userId}/subscriptions`,
+      wallets,
+    );
+    const leadDiscovery = await requestCoinpilot(
+      "GET",
+      "/lead-wallets/metrics/categories",
+      wallets,
+      undefined,
+      { limit: 1 },
+    );
+    const discoveredLeadWallet = extractLeadWallet(leadDiscovery);
+    if (!discoveredLeadWallet) {
+      throw new Error(
+        "Unable to extract a lead wallet from the lead discovery response during validation",
+      );
+    }
+    const hlAccount = await requestHyperliquid({
+      type: "clearinghouseState",
+      user: primaryAddress,
+    });
+
+    formatOutput({
+      ok: true,
+      validation: {
+        me: { userId: apiUserId },
+        subscriptions: {
+          count: Array.isArray(subscriptions)
+            ? subscriptions.length
+            : undefined,
+        },
+        leadDiscovery: {
+          leadWallet: discoveredLeadWallet,
+        },
+        hlAccount: {
+          wallet: primaryAddress,
+          found: Boolean(hlAccount),
+        },
+      },
+    });
     return;
   }
 
@@ -635,6 +862,12 @@ const main = async () => {
 };
 
 main().catch((err) => {
-  console.error(err.message || err);
+  const message =
+    err instanceof Error
+      ? err.message
+      : typeof err === "string"
+        ? err
+        : String(err);
+  console.error(redactSecretsInString(message));
   process.exitCode = 1;
 });

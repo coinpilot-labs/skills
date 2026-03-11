@@ -1,2 +1,4 @@
 # Local runtime credentials and temporary artifacts
 tmp/
+coinpilot.json
+**/coinpilot.json
